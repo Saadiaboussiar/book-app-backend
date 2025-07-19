@@ -15,7 +15,8 @@ This is the backend REST API for the Book App, built with Spring Boot.
 
 - Java JDK 11 or higher
 - Maven or Gradle
-- Database setup (PostgreSQL, H2, etc.)
+- Docker (optional but recommended for PostgreSQL setup)
+- A database (e.g., PostgreSQL, or H2 in-memory for testing)
 
 ### Installation
 

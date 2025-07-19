@@ -6,6 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.BookAppRestAPI.entites.Book;
 import com.example.BookAppRestAPI.repositories.BookRepository;
+import com.example.BookAppRestAPI.sec.entities.AppRole;
 import com.example.BookAppRestAPI.sec.entities.AppUser;
 import com.example.BookAppRestAPI.sec.repositories.AppUserRepository;
 import com.example.BookAppRestAPI.sec.service.AccountService;
@@ -45,37 +46,41 @@ public class BooksController {
         booklist.sort(Comparator.comparing(Book::getId));
         return booklist;
     }
-    @GetMapping(path = "/refreshToken")
-    public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws Exception{
-        String authorizationToken=request.getHeader("Authorization");
-        if(authorizationToken!=null && authorizationToken.startsWith("Bearer ")){
+
+    @PostMapping("/refreshToken")
+    public void refreshToken(@RequestBody Map<String, String> tokenMap, HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String refreshToken = tokenMap.get("refreshToken");
+        if (refreshToken != null && refreshToken.startsWith("Bearer ")) {
             try {
-                String jwt=authorizationToken.substring(7);
-                Algorithm algo=Algorithm.HMAC256("mySecret2005");
-                JWTVerifier jwtVerifier= JWT.require(algo).build();
-                DecodedJWT decodeJwt= jwtVerifier.verify(jwt);
-                String username=decodeJwt.getSubject();
-                AppUser appUser=accountService.loadUserBYUsername(username);
-                String jwtAccessToken= JWT.create()
+                String jwt = refreshToken.substring(7);
+                Algorithm algo = Algorithm.HMAC256("mySecret2005");
+                JWTVerifier jwtVerifier = JWT.require(algo).build();
+                DecodedJWT decodeJwt = jwtVerifier.verify(jwt);
+                String username = decodeJwt.getSubject();
+
+                AppUser appUser = accountService.loadUserBYUsername(username);
+                String jwtAccessToken = JWT.create()
                         .withSubject(appUser.getUsername())
-                        .withExpiresAt(new Date(System.currentTimeMillis()+5*60*1000))
+                        .withExpiresAt(new Date(System.currentTimeMillis() + 5 * 60 * 1000))
                         .withIssuer(request.getRequestURL().toString())
-                        .withClaim("roles",appUser.getApproles().stream().map(r->r.getRoleName()).collect(Collectors.toList())) //On transforme une collection de type AppRole a une to type string
+                        .withClaim("roles", appUser.getApproles().stream()
+                                .map(AppRole::getRoleName)
+                                .collect(Collectors.toList()))
                         .sign(algo);
 
-                Map<String,String> idToken=new HashMap<>();
-                idToken.put("access-token",jwtAccessToken);
-                idToken.put("refresh-token",jwt);
+                Map<String, String> idToken = new HashMap<>();
+                idToken.put("access-token", jwtAccessToken);
+                idToken.put("refresh-token", jwt);
                 response.setContentType("application/json");
-                new ObjectMapper().writeValue(response.getOutputStream(),idToken);
-
-            }catch (Exception e){
+                new ObjectMapper().writeValue(response.getOutputStream(), idToken);
+            } catch (Exception e) {
                 throw e;
             }
-        }else{
+        } else {
             throw new RuntimeException("Refresh Token required!!");
         }
     }
+
 
     @PostMapping("/books")
     @PreAuthorize("hasAnyAuthority('ADMIN','MANAGER')")
@@ -121,20 +126,28 @@ public class BooksController {
 
     @PostMapping(path="/users")
     public AppUser saveUser(@RequestBody AppUser appUser){
-        if(appUserRepository.findByUsername(appUser.getUsername())==null){
-            AppUser newUser=accountService.addNewUser(appUser);
-            if(!appUser.getUsername().equalsIgnoreCase("manager") && !appUser.getUsername().equalsIgnoreCase("admin")){
-                accountService.addRoletoUser("USER",appUser.getUsername());
-            } else if (appUser.getUsername().equalsIgnoreCase("manager")) {
-                accountService.addRoletoUser("MANAGER",appUser.getUsername());
-                accountService.addRoletoUser("USER",appUser.getUsername());
-            }else{
-                accountService.addRoletoUser("ADMIN",appUser.getUsername());
-                accountService.addRoletoUser("USER",appUser.getUsername());
+        try {
+            if (appUserRepository.findByUsername(appUser.getUsername()) == null) {
+                AppUser newUser = accountService.addNewUser(appUser);
+                String username = appUser.getUsername();
 
+                if (!appUser.getUsername().equalsIgnoreCase("manager") && !appUser.getUsername().equalsIgnoreCase("admin")) {
+                    accountService.addRoletoUser("USER", appUser.getUsername());
+                } else if (appUser.getUsername().equalsIgnoreCase("manager")) {
+                    accountService.addRoletoUser("MANAGER", appUser.getUsername());
+                    accountService.addRoletoUser("USER", appUser.getUsername());
+                } else {
+                    accountService.addRoletoUser("ADMIN", appUser.getUsername());
+                    accountService.addRoletoUser("USER", appUser.getUsername());
+
+                }
+                return newUser;
+            } else {
+                System.out.println("Username already exists: " + appUser.getUsername());
+                return null;
             }
-            return newUser;
-        }else{
+        }catch(Exception e){
+            e.printStackTrace();
             return null;
         }
 

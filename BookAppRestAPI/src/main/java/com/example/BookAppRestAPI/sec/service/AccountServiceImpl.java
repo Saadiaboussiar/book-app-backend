@@ -41,6 +41,7 @@ public class AccountServiceImpl implements AccountService {
         AppUser user=appUserRepository.findByUsername(username);
         AppRole role=appRoleRepository.findByRoleName(roleName);
         user.getApproles().add(role);
+        appUserRepository.save(user);
 
     }
 

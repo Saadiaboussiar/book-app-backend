@@ -2,5 +2,8 @@
 <module version="4">
   <component name="AdditionalModuleElements">
     <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$/BookAppRestAPI" dumb="true">
+      <sourceFolder url="file://$MODULE_DIR$/BookAppRestAPI/src/main/resources/sql" isTestSource="false" />
+    </content>
   </component>
 </module>

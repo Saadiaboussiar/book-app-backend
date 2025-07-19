@@ -1,0 +1,3 @@
+INSERT INTO app_role (role_name) VALUES ('USER');
+INSERT INTO app_role (role_name) VALUES ('ADMIN');
+INSERT INTO app_role (role_name) VALUES ('MANAGER');
